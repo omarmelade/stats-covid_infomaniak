@@ -89,6 +89,13 @@ void MainWindow::createTableHeaders(QJsonArray status, std::vector<QString> rows
     {
         verticalHeader.append(rowsHeaderVal[i]);
     }
+
+    model.index(1,1,model.index(0,0));
+    model.setHorizontalHeaderLabels(horizontalHeader);
+    model.setVerticalHeaderLabels(verticalHeader);
+
+    ui->tableResults->setModel(&model);
+
     filled = true;
 }
 
@@ -103,16 +110,9 @@ void MainWindow::fillTable()
     }else
     {
         /// RESET TABLE
-
         ui->tableResults->model()->removeColumns(0, status.size());
         ui->tableResults->model()->removeRows(0, 3);
     }
-
-    model.index(1,1,model.index(0,0));
-    model.setHorizontalHeaderLabels(horizontalHeader);
-    model.setVerticalHeaderLabels(verticalHeader);
-
-    ui->tableResults->setModel(&model);
 
     QJsonArray records = this->data["records"].toArray();
 
@@ -147,6 +147,8 @@ void MainWindow::fillTable()
                         double count = (fields[rowsHeaderVal[j]].toDouble() + oldV.toDouble());
                         QString newV = QString::number(count);
                         ui->tableResults->model()->setData(qIndex, newV);
+                        qDebug() <<  effectif.at(index);
+                        qDebug() << (count * 100 ) / effectif.at(index) << " %";
                     }
                 }
         }else
@@ -155,7 +157,19 @@ void MainWindow::fillTable()
         }
     }
 
-
+    for(int i = 0; i < ui->tableResults->model()->columnCount(); i++)
+    {
+            auto hItem = model.horizontalHeaderItem(i);
+            int index = getIndex(statusIndex, hItem->text());
+            for(size_t j = 0; j < rowsHeaderVal.size(); j++ )
+            {
+                QModelIndex qIndex = ui->tableResults->model()->index(j, index);
+                QVariant oldV = ui->tableResults->model()->data(qIndex);
+                QString percent = QString::number( (oldV.toDouble() * 100 ) / effectif.at(index), 'f', 3);
+                QString valAndPercent = oldV.toString() + " / " + percent + " %";
+                ui->tableResults->model()->setData(qIndex, valAndPercent);
+            }
+    }
 
 
 

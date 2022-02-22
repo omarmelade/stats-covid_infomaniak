@@ -116,8 +116,8 @@ void MainWindow::fillTable()
 
     QJsonArray records = this->data["records"].toArray();
 
-
-
+    std::vector<double> effectif = std::vector<double>(statusIndex.size());
+    std::fill(effectif.begin(), effectif.end(), 0);
 
     for(int i = 0; i < records.size(); i++)
     {
@@ -125,6 +125,14 @@ void MainWindow::fillTable()
         QJsonValue fields = r["fields"];
         QString statut = fields["vac_statut"].toString();
         int index = getIndex(statusIndex, statut);
+
+        // calcul du pourcentage
+        double oldEff = effectif.at(index);
+        double newEff = fields["effectif"].toDouble();
+        if(oldEff == 0 || oldEff < newEff)
+        {
+            effectif.at(index) = newEff;
+        }
 
         if(index != -1)
         {
@@ -140,15 +148,15 @@ void MainWindow::fillTable()
                         QString newV = QString::number(count);
                         ui->tableResults->model()->setData(qIndex, newV);
                     }
-
-                    qDebug() <<  oldV;
-
                 }
         }else
         {
             qDebug() << "error values are in the wrong format.";
         }
     }
+
+
+
 
 
     ui->tableResults->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);

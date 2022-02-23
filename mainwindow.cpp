@@ -176,16 +176,9 @@ QJsonObject MainWindow::agregateData()
 {
     QJsonObject agregatedData = QJsonObject();
 
-    QJsonArray status = this->data["facet_groups"][1]["facets"].toArray();
     std::vector<QString> rowsHeaderVal = {"hc_pcr", "sc_pcr", "dc_pcr"};
     QJsonArray records = this->data["records"].toArray();
-
-    // Init effectif map
     std::map<QString, double> eff;
-    for(int i = 0; i < status.size(); i++)
-    {
-        eff[status[i].toString()] = 0.0;
-    }
 
     // Init the data storage
     QJsonObject dataValues = QJsonObject();
@@ -206,7 +199,7 @@ QJsonObject MainWindow::agregateData()
         QString statut = fields["vac_statut"].toString();
 
         // Store effectifs for percentage
-        if(eff[statut] != 0 && eff[statut] < fields["effectif"].toDouble())
+        if(eff[statut] < fields["effectif"].toDouble())
             eff[statut] = fields["effectif"].toDouble();
 
         QString key = statut;
@@ -218,18 +211,39 @@ QJsonObject MainWindow::agregateData()
         for(size_t j = 0; j < rowsHeaderVal.size(); j++ )
         {
             auto statutObject = agregatedData.find(key).value().toObject();
-            auto value = statutObject.find(rowsHeaderVal[j]).value();
 
+            auto value = statutObject.find(rowsHeaderVal[j]).value();
             // making sum if the old value is valid
             value = fields[rowsHeaderVal[j]].toDouble() + value.toDouble();
+
+            agregatedData.find(key).value() = statutObject;
         }
     }
+
+    for (auto &e : eff) {
+        if(e.first != "Non-vaccinés")
+        {
+            eff["Autres statuts"] += e.second;
+        }
+    }
+
+    auto nonVac = agregatedData.find("Non-vaccinés").value().toObject();
+    nonVac.find("effectif").value() = eff["Non-vaccinés"];
+    agregatedData.find("Non-vaccinés").value() = nonVac;
+
+    auto others = agregatedData.find("Autres statuts").value().toObject();
+    others.find("effectif").value() = eff["Autres statuts"];
+    agregatedData.find("Autres statuts").value() = others;
+
+    qDebug() << agregatedData;
 
     return agregatedData;
 }
 
 void MainWindow::fillTable()
 {
+    QJsonObject data = agregateData();
+
     // Get all status and records and store it
     QJsonArray status = this->data["facet_groups"][1]["facets"].toArray();
     std::vector<QString> rowsHeaderVal = {"hc_pcr", "sc_pcr", "dc_pcr"};

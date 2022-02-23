@@ -30,10 +30,10 @@ public:
 
     // Request
     void makeRequest(QString sDate, QString eDate, QString nbRows);
-    QJsonObject agregateData();
+    QJsonObject agregateData(std::vector<QString> rowsHeaderVal);
 
     // Table
-    void createTableHeaders(QJsonArray status, std::vector<QString> rowsHeaderVal);
+    void createTableHeaders(std::vector<QString> rowsHeaderVal);
     void fillTable();
     void clearCells(std::vector<QString> rowsHeaderVal);
     void showPercentage(std::vector<double> effectif, std::vector<QString> rowsHeaderVal);
@@ -41,6 +41,7 @@ public:
     // Utils
     int  indexOfStatut(QJsonValue fields);
     void updateLoadBtnText(QString text);
+    void resetLoadBtnText();
 
 private:
     Ui::MainWindow *ui;

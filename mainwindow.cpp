@@ -155,7 +155,7 @@ QJsonObject MainWindow::agregateData(std::vector<QString> rowsHeaderVal)
 ////////////////////////////////////
 
 // Create Headers for the TableView, with the given array
-void MainWindow::createTableHeaders(std::vector<QString> rowsHeaderVal)
+void MainWindow::createTableHeaders()
 {
 
     // I store the index of status in a tab
@@ -167,10 +167,15 @@ void MainWindow::createTableHeaders(std::vector<QString> rowsHeaderVal)
     horizontalHeader.append("Autres statuts");
     statusIndex.push_back("Autres statuts");
 
-    for(size_t i = 0; i < rowsHeaderVal.size(); i++)
-    {
-        verticalHeader.append(rowsHeaderVal[i]);
-    }
+
+
+    verticalHeader.append("Nombre d'entrées de patients en hospitalisation complète avec Covid-19 "
+                          "pour lesquels un test PCR positif a été identifié (hc_pcr)");
+    verticalHeader.append("Nombre d'entrées de patients en soins critiques avec Covid-19 pour "
+                          "lesquels un test PCR positif a été identifié (sc_pcr)");
+    verticalHeader.append("Nombre de décès de patients hospitalisés avec Covid-19 pour lesquels "
+                          "un test PCR positif a été identifié (dc_pcr)");
+
 
     // set the model to the table view
     model.index(1,1,model.index(0,0));
@@ -189,11 +194,10 @@ void MainWindow::fillTable()
 
     // Get all status and records and store it
     std::vector<QString> rowsHeaderVal = {"hc_pcr", "sc_pcr", "dc_pcr"};
-
     QJsonObject data = agregateData(rowsHeaderVal);
 
     if(!filled)
-        createTableHeaders(rowsHeaderVal);
+        createTableHeaders();
 
     for(int i = 0; i < ui->tableResults->model()->columnCount(); i++)
     {

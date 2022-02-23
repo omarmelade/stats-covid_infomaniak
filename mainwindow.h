@@ -33,7 +33,7 @@ public:
     QJsonObject agregateData(std::vector<QString> rowsHeaderVal);
 
     // Table
-    void createTableHeaders(std::vector<QString> rowsHeaderVal);
+    void createTableHeaders();
     void fillTable();
     void clearCells(std::vector<QString> rowsHeaderVal);
     void showPercentage(std::vector<double> effectif, std::vector<QString> rowsHeaderVal);

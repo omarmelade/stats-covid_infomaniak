@@ -89,8 +89,12 @@ int MainWindow::indexOfStatut(QJsonValue fields)
 {
 
     QString statut = fields["vac_statut"].toString();
+    if(statut == "Non-vaccinés")
+    {
+        return 0;
+    }
 
-    return getIndex(statusIndex, statut);
+    return 1;
 }
 
 ////////////////////////////////////
@@ -103,12 +107,11 @@ void MainWindow::createTableHeaders(QJsonArray status, std::vector<QString> rows
 
     // I store the index of status in a tab
     // to be able to retreive the status index for inserting data
-    for (int i = 0; i < status.size() ; i++ ) {
-        QJsonValue s = status[i];
-        QString sName = s["name"].toString();
-        horizontalHeader.append(sName);
-        statusIndex.push_back(sName);
-    }
+    horizontalHeader.append("Non-vaccinés");
+    statusIndex.push_back("Non-vaccinés");
+
+    horizontalHeader.append("Autres statuts");
+    statusIndex.push_back("Autres statuts");
 
     for(size_t i = 0; i < rowsHeaderVal.size(); i++)
     {
@@ -157,6 +160,7 @@ void MainWindow::showPercentage(std::vector<double> effectif, std::vector<QStrin
 // clear all cells of table
 void MainWindow::clearCells(std::vector<QString> rowsHeaderVal)
 {
+    qDebug() << ui->tableResults->model()->columnCount();
     for(int i = 0; i < ui->tableResults->model()->columnCount(); i++)
     {
         for(size_t j = 0; j < rowsHeaderVal.size(); j++ )
@@ -165,6 +169,63 @@ void MainWindow::clearCells(std::vector<QString> rowsHeaderVal)
             qDebug() << i << j << ui->tableResults->model()->clearItemData(qIndex);
         }
     }
+}
+
+
+QJsonObject MainWindow::agregateData()
+{
+    QJsonObject agregatedData = QJsonObject();
+
+    QJsonArray status = this->data["facet_groups"][1]["facets"].toArray();
+    std::vector<QString> rowsHeaderVal = {"hc_pcr", "sc_pcr", "dc_pcr"};
+    QJsonArray records = this->data["records"].toArray();
+
+    // Init effectif map
+    std::map<QString, double> eff;
+    for(int i = 0; i < status.size(); i++)
+    {
+        eff[status[i].toString()] = 0.0;
+    }
+
+    // Init the data storage
+    QJsonObject dataValues = QJsonObject();
+    for(size_t i = 0; i < rowsHeaderVal.size(); i++ )
+    {
+        dataValues.insert(rowsHeaderVal[i], 0.0);
+    }
+
+    dataValues.insert("effectif", 0.0);
+
+    agregatedData.insert("Non-vaccinés", dataValues);
+    agregatedData.insert("Autres statuts", dataValues);
+
+    for(int i = 0; i < records.size(); i++)
+    {
+        QJsonValue r = records[i];
+        QJsonValue fields = r["fields"];
+        QString statut = fields["vac_statut"].toString();
+
+        // Store effectifs for percentage
+        if(eff[statut] != 0 && eff[statut] < fields["effectif"].toDouble())
+            eff[statut] = fields["effectif"].toDouble();
+
+        QString key = statut;
+        if(statut != "Non-vaccinés")
+        {
+            key = "Autres statuts";
+        }
+
+        for(size_t j = 0; j < rowsHeaderVal.size(); j++ )
+        {
+            auto statutObject = agregatedData.find(key).value().toObject();
+            auto value = statutObject.find(rowsHeaderVal[j]).value();
+
+            // making sum if the old value is valid
+            value = fields[rowsHeaderVal[j]].toDouble() + value.toDouble();
+        }
+    }
+
+    return agregatedData;
 }
 
 void MainWindow::fillTable()
@@ -190,28 +251,24 @@ void MainWindow::fillTable()
 
         calcEffectif(effectif, fields, index);
 
-        // if the column exist
-        if(index != -1)
+        for(size_t j = 0; j < rowsHeaderVal.size(); j++ )
         {
-            for(size_t j = 0; j < rowsHeaderVal.size(); j++ )
-            {
-                // we getting the index and the old value
-                QModelIndex qIndex = ui->tableResults->model()->index(j, index);
-                QVariant oldV = ui->tableResults->model()->data(qIndex);
+            // we getting the index and the old value
+            QModelIndex qIndex = ui->tableResults->model()->index(j, index);
+            QVariant oldV = ui->tableResults->model()->data(qIndex);
 
-                if(oldV != "" && oldV.isValid())
-                {
-                    // making sum if the old value is valid
-                    double count = (fields[rowsHeaderVal[j]].toDouble() + oldV.toDouble());
-                    QString newV = QString::number(count);
-                    ui->tableResults->model()->setData(qIndex, newV);
-                }
+            if(oldV != "")
+            {
+                // making sum if the old value is valid
+                double count = (fields[rowsHeaderVal[j]].toDouble() + oldV.toDouble());
+                QString newV = QString::number(count);
+                ui->tableResults->model()->setData(qIndex, newV);
             }
         }
     }
 
     // Printing percentage after the all values are set
-    showPercentage(effectif, rowsHeaderVal);
+    //showPercentage(effectif, rowsHeaderVal);
 
     ui->tableResults->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 
